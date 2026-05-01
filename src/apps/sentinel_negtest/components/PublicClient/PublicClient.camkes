@@ -1,0 +1,2 @@
+import "../../interfaces/Hello.idl4";
+component PublicClient { control; uses Hello h; }

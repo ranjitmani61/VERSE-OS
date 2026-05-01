@@ -1,0 +1,1 @@
+component WorkerB { control; dataport Buf shared; dataport Buf logbuf; }

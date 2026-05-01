@@ -1,0 +1,32 @@
+#include <camkes.h>
+#include <stdio.h>
+#include <camkes/dataport.h>
+int run(void){
+    volatile int *hb = (volatile int*)heartbeat;
+    volatile int *rd = (volatile int*)((char*)heartbeat+4092);
+    volatile int *kflag = (volatile int*)kill_flag;
+    *kflag = 0;
+    while (*rd == 0);
+    printf("WDOG: active monitoring\n");
+    while (1) {
+        int last = *hb, fc = 0;
+        while (1) {
+            for (volatile int d=0; d<1000000; d++);
+            int cur = *hb;
+            if (cur == last) {
+                fc++;
+                if (fc >= 15) {
+                    printf("WDOG: heartbeat lost after %d polls, setting kill flag\n", fc);
+                    *kflag = 1;
+                    break;
+                }
+            } else { fc = 0; }
+            last = cur;
+        }
+        printf("WDOG: waiting for recovery heartbeat...\n");
+        while (*hb == last) { for (volatile int d=0; d<1000000; d++); }
+        *kflag = 0;
+        printf("WDOG: heartbeat resumed, re-armed and monitoring\n");
+    }
+    return 0;
+}

@@ -1,0 +1,1 @@
+procedure FS { int write(in string data); int verify(); int read_all(); };

@@ -1,0 +1,22 @@
+import <std_connector.camkes>;
+import "interfaces/FS.idl4";
+import "components/LogRing/LogRing.camkes";
+import "components/CodexFS/CodexFS.camkes";
+import "components/WriteClient/WriteClient.camkes";
+import "components/ReadClient/ReadClient.camkes";
+
+assembly {
+    composition {
+        component LogRing logring;
+        component CodexFS codexfs;
+        component WriteClient writer;
+        component ReadClient reader;
+
+        connection seL4SharedData lx(from codexfs.logbuf, to logring.logbuf);
+        connection seL4SharedData lw(from writer.logbuf, to logring.logbuf);
+        connection seL4SharedData lr(from reader.logbuf, to logring.logbuf);
+        connection seL4RPCCall fsw(from writer.fs, to codexfs.fs);
+        connection seL4RPCCall fsr(from reader.fs, to codexfs.fs);
+        connection seL4SharedData fstore(from codexfs.store, to reader.store);
+    }
+}

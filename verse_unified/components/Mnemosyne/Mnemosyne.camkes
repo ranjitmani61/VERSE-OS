@@ -1,0 +1,5 @@
+component Mnemosyne {
+    control;
+    dataport Buf logbuf;
+}
+

@@ -1,0 +1,16 @@
+import <std_connector.camkes>;
+import "components/LogRing/LogRing.camkes";
+import "components/CortexMM/CortexMM.camkes";
+import "components/MemClient/MemClient.camkes";
+
+assembly {
+    composition {
+        component LogRing logring;
+        component CortexMM cortexmm;
+        component MemClient memclient;
+
+        connection seL4SharedData lm(from cortexmm.logbuf, to logring.logbuf);
+        connection seL4SharedData lmc(from memclient.logbuf, to logring.logbuf);
+        connection seL4SharedData mem(from cortexmm.page_allocatable, to memclient.allocated_page);
+    }
+}

@@ -1,0 +1,1 @@
+component CortexMM { control; dataport Buf page_allocatable; dataport Buf logbuf; }

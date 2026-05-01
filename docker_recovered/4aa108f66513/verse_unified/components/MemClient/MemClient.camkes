@@ -1,0 +1,1 @@
+component MemClient { control; dataport Buf allocated_page; dataport Buf logbuf; }

@@ -1,0 +1,1 @@
+component DharmaNet { control; dataport Buf workerA_buf; dataport Buf workerB_buf; dataport Buf logbuf; }

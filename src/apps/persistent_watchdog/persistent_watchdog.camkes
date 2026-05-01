@@ -1,0 +1,14 @@
+import <std_connector.camkes>;
+import "components/TestWorker/TestWorker.camkes";
+import "components/Watchdog/Watchdog.camkes";
+import "components/ProcMan/ProcMan.camkes";
+assembly {
+    composition {
+        component TestWorker worker;
+        component Watchdog watchdog;
+        component ProcMan procman;
+        connection seL4SharedData hb(from worker.heartbeat, to watchdog.heartbeat);
+        connection seL4SharedData kf(from watchdog.kill_flag, to procman.kill_flag);
+        connection seL4SharedData rf(from procman.restart_flag, to worker.restart_flag);
+    }
+}

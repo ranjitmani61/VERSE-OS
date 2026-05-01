@@ -1,0 +1,1 @@
+component TestWorker { control; dataport Buf heartbeat; dataport Buf restart_flag; }

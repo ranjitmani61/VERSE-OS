@@ -1,0 +1,13 @@
+import <std_connector.camkes>;
+import "components/Watchdog/Watchdog.camkes";
+import "components/TestWorker/TestWorker.camkes";
+
+assembly {
+    composition {
+        component Watchdog watchdog;
+        component TestWorker worker;
+
+        connection seL4SharedData hb(from worker.heartbeat, to watchdog.heartbeat);
+        connection seL4SharedData kf(from watchdog.kill_flag, to worker.restart_flag);
+    }
+}

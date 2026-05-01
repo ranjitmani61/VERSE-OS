@@ -1,0 +1,20 @@
+import <std_connector.camkes>;
+import "components/LogRing/LogRing.camkes";
+import "components/WorkerA/WorkerA.camkes";
+import "components/WorkerB/WorkerB.camkes";
+import "components/DharmaNet/DharmaNet.camkes";
+
+assembly {
+    composition {
+        component LogRing logring;
+        component WorkerA worker_a;
+        component WorkerB worker_b;
+        component DharmaNet dharmanet;
+
+        connection seL4SharedData la(from worker_a.logbuf, to logring.logbuf);
+        connection seL4SharedData lb(from worker_b.logbuf, to logring.logbuf);
+        connection seL4SharedData ld(from dharmanet.logbuf, to logring.logbuf);
+        connection seL4SharedData wa(from worker_a.shared, to dharmanet.workerA_buf);
+        connection seL4SharedData wb(from worker_b.shared, to dharmanet.workerB_buf);
+    }
+}

@@ -1,0 +1,2 @@
+import "../../interfaces/FS.idl4";
+component WriteClient { control; uses FS fs; dataport Buf logbuf; }

@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16.0)
+project(persistent_watchdog C)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/components/TestWorker)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/components/Watchdog)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/components/ProcMan)
+DeclareCAmkESRootserver(persistent_watchdog.camkes)

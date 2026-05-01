@@ -1,0 +1,1 @@
+component ProcMan { control; dataport Buf kill_flag; dataport Buf restart_flag; }

@@ -1,0 +1,2 @@
+import "../../interfaces/FS.idl4";
+component ReadClient { control; uses FS fs; dataport Buf store; dataport Buf logbuf; }

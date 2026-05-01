@@ -1,0 +1,18 @@
+import <std_connector.camkes>;
+import "components/Sentinel/Sentinel.camkes";
+import "components/Hello/Hello.camkes";
+import "components/PublicClient/PublicClient.camkes";
+import "components/SecretClient/SecretClient.camkes";
+
+assembly {
+    composition {
+        component Sentinel sentinel;
+        component Hello hello;
+        component PublicClient pub;
+        component SecretClient sec;
+
+        connection seL4RPCCall p(from pub.h, to sentinel.public_h);
+        connection seL4RPCCall s(from sec.h, to sentinel.secret_h);
+        connection seL4RPCCall to_hello(from sentinel.server_h, to hello.h);
+    }
+}

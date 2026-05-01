@@ -1,0 +1,2 @@
+import "../../interfaces/Hello.idl4";
+component Sentinel { provides Hello client_h; uses Hello server_h; dataport Buf logbuf; }

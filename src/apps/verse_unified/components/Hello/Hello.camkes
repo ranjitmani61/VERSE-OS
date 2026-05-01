@@ -1,0 +1,2 @@
+import "../../interfaces/Hello.idl4";
+component Hello { provides Hello h; dataport Buf logbuf; }

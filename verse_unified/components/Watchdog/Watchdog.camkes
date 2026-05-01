@@ -1,0 +1,1 @@
+component Watchdog { control; dataport Buf heartbeat; dataport Buf kill_flag; dataport Buf logbuf; }

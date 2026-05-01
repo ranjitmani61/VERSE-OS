@@ -1,0 +1,2 @@
+import "../../interfaces/Hello.idl4";
+component Sentinel { provides Hello public_h; provides Hello secret_h; uses Hello server_h; }
