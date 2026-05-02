@@ -26,7 +26,7 @@ def find_cnode_blocks(text: str) -> list[tuple[str, str]]:
     i = 0
     while i < len(lines):
         line = lines[i]
-        if re.search(r"=\s*cnode\b", line, re.I) or re.search(r"\bcnode\b", line, re.I):
+        if re.match(r"^\s*\w+_cnode\s*\{\s*$", line):
             name = line.strip()
             body = [line]
             j = i + 1
