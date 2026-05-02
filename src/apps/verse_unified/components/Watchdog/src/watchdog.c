@@ -9,6 +9,7 @@ int run(void){
     *kflag = 0;
     while (*rd == 0);
     printf("WDOG: active monitoring\n");
+    int recovery_passes = 0;
     while (1) {
         int last = *hb, fc = 0;
         while (1) {
@@ -30,8 +31,9 @@ int run(void){
         *kflag = 0;
         printf("WDOG: recovery heartbeat received (%d)\n", recovered);
         if (recovered >= 1000000) {
+            recovery_passes++;
             printf("WDOG: recovered worker entry heartbeat proof\n");
-            printf("VERSE_RECOVERY_PASS\n");
+            printf("VERSE_RECOVERY_PASS_%d\n", recovery_passes);
         }
         printf("WDOG: heartbeat resumed, re-armed and monitoring\n");
     }

@@ -11,9 +11,18 @@ void verse_recovery_entry(void)
     *rf = 0;
 
     int counter = 1000000;
-    while (1) {
+
+    for (int i = 0; i < 5; i++) {
         *hb = ++counter;
         for (volatile int d = 0; d < 10000000; d++);
+    }
+
+    /*
+     * Recovered worker deliberately stops heartbeating again.
+     * This probes whether ProcMan can perform repeated TCB recovery.
+     */
+    while (1) {
+        for (volatile int d = 0; d < 1000000; d++);
     }
 }
 

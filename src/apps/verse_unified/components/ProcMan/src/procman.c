@@ -19,6 +19,15 @@
 #ifndef VERSE_FRESH_WORKER_TCB_CPTR
 #define VERSE_FRESH_WORKER_TCB_CPTR ((seL4_CPtr)0x104)
 #endif
+#ifndef VERSE_SPARE_WORKER_TCB_1_CPTR
+#define VERSE_SPARE_WORKER_TCB_1_CPTR ((seL4_CPtr)0x104)
+#endif
+#ifndef VERSE_SPARE_WORKER_TCB_2_CPTR
+#define VERSE_SPARE_WORKER_TCB_2_CPTR ((seL4_CPtr)0x109)
+#endif
+#ifndef VERSE_SPARE_WORKER_TCB_3_CPTR
+#define VERSE_SPARE_WORKER_TCB_3_CPTR ((seL4_CPtr)0x10a)
+#endif
 #ifndef VERSE_WORKER_CSPACE_CPTR
 #define VERSE_WORKER_CSPACE_CPTR ((seL4_CPtr)0x105)
 #endif
@@ -73,6 +82,16 @@
 #define RECOVERY_POLL_DELAY 500000
 #define RECOVERY_WAIT_POLLS 2000
 
+#ifdef VERSE_TCB_ENFORCED
+#if VERSE_WORKER_IPC_BUFFER_ADDR == 0 || VERSE_WORKER_ENTRY_IP == 0 || VERSE_WORKER_STACK_TOP == 0
+#error "VERSE_TCB_ENFORCED requires nonzero worker IPC buffer, entry IP, and stack top"
+#endif
+#endif
+
+#ifdef VERSE_TCB_ENFORCED
+static seL4_CPtr active_worker_tcb = VERSE_WORKER_TCB_CPTR;
+#endif
+
 static int cooperative_restart(volatile int *rf, volatile int *kflag)
 {
     int ack_seen = 0;
@@ -105,63 +124,55 @@ static void fault_endpoint_handler_stub(void)
 
 static int suspend_worker_tcb(void)
 {
-    seL4_CPtr worker_tcb = VERSE_WORKER_TCB_CPTR;
+    seL4_CPtr worker_tcb = active_worker_tcb;
+    printf("ProcMan: suspending active worker TCB 0x%lx\n", (unsigned long)worker_tcb);
+
     int err = seL4_TCB_Suspend(worker_tcb);
     if (err != seL4_NoError) {
         printf("ProcMan: seL4_TCB_Suspend failed (%d)\n", err);
         return -1;
     }
-    printf("ProcMan: seL4_TCB_Suspend(worker_tcb) OK\n");
-    printf("ProcMan: old worker TCB suspended and quarantined\n");
+
+    printf("ProcMan: active worker TCB 0x%lx suspended and quarantined\n",
+           (unsigned long)worker_tcb);
     return 0;
 }
 
-static int rebuild_worker_tcb(void)
+static seL4_CPtr spare_worker_tcb_for_attempt(int attempt)
 {
-    /*
-     * Cap contract, matching src/capdl/verse_tcb_handoff.cdl:
-     * - 0x102 VERSE_PROCMAN_CNODE_CPTR: ProcMan CNode cap, destination root.
-     * - 0x103 VERSE_WORKER_TCB_UNTYPED_CPTR: untyped for one fresh TCB.
-     * - 0x104 VERSE_FRESH_WORKER_TCB_CPTR: empty destination slot for Retype.
-     * - 0x105 VERSE_WORKER_CSPACE_CPTR: worker CSpace root.
-     * - 0x106 VERSE_WORKER_VSPACE_CPTR: worker VSpace root.
-     * - 0x107 VERSE_WORKER_IPC_BUFFER_CPTR: mapped worker IPC buffer frame.
-     * - 0x108 VERSE_WORKER_CONFIGURE_FAULT_EP_CPTR: worker fault endpoint.
-     *
-     * STUB: requires native seL4 build environment. The syscall sequence is
-     * real, but the current Docker CAmkES build does not provide these caps or
-     * the worker entry/stack addresses.
-     */
+    if (attempt == 1) {
+        return VERSE_SPARE_WORKER_TCB_1_CPTR;
+    }
+    if (attempt == 2) {
+        return VERSE_SPARE_WORKER_TCB_2_CPTR;
+    }
+    return VERSE_SPARE_WORKER_TCB_3_CPTR;
+}
+
+static int rebuild_worker_tcb(int attempt)
+{
+    seL4_CPtr fresh_tcb = spare_worker_tcb_for_attempt(attempt);
+
     if (VERSE_WORKER_IPC_BUFFER_ADDR == 0 ||
         VERSE_WORKER_ENTRY_IP == 0 ||
         VERSE_WORKER_STACK_TOP == 0) {
-        printf("ProcMan: TCB rebuild metadata missing; configure IPC addr, entry IP, and stack top\n");
+        printf("ProcMan: TCB rebuild metadata missing\n");
         return -1;
     }
 
+    printf("ProcMan: spare TCB slot for attempt %d is 0x%lx\n",
+           attempt, (unsigned long)fresh_tcb);
     printf("ProcMan: fresh metadata RIP=0x%lx RSP=0x%lx IPC=0x%lx\n",
            (unsigned long)VERSE_WORKER_ENTRY_IP,
            (unsigned long)VERSE_WORKER_STACK_TOP,
            (unsigned long)VERSE_WORKER_IPC_BUFFER_ADDR);
 
-    int err = seL4_Untyped_Retype(VERSE_WORKER_TCB_UNTYPED_CPTR,
-                                  seL4_TCBObject,
-                                  seL4_TCBBits,
-                                  VERSE_PROCMAN_CNODE_CPTR,
-                                  VERSE_CNODE_DEST_INDEX,
-                                  VERSE_CNODE_DEST_DEPTH,
-                                  VERSE_FRESH_WORKER_TCB_CPTR,
-                                  1);
-    if (err != seL4_NoError) {
-        printf("ProcMan: seL4_Untyped_Retype(TCB) failed (%d)\n", err);
-        return -1;
-    }
-
+    int err;
     seL4_Word cspace_data =
         seL4_CNode_CapData_new(0, VERSE_WORKER_CSPACE_GUARD_BITS).words[0];
 
 #ifdef CONFIG_KERNEL_MCS
-    err = seL4_TCB_Configure(VERSE_FRESH_WORKER_TCB_CPTR,
+    err = seL4_TCB_Configure(fresh_tcb,
                              VERSE_WORKER_CSPACE_CPTR, cspace_data,
                              VERSE_WORKER_VSPACE_CPTR, VERSE_WORKER_VSPACE_ROOT_DATA,
                              VERSE_WORKER_IPC_BUFFER_ADDR,
@@ -171,7 +182,7 @@ static int rebuild_worker_tcb(void)
         return -1;
     }
 
-    err = seL4_TCB_SetSchedParams(VERSE_FRESH_WORKER_TCB_CPTR,
+    err = seL4_TCB_SetSchedParams(fresh_tcb,
                                   VERSE_SCHED_AUTH_TCB_CPTR,
                                   VERSE_WORKER_MAX_PRIORITY,
                                   VERSE_WORKER_PRIORITY,
@@ -182,7 +193,7 @@ static int rebuild_worker_tcb(void)
         return -1;
     }
 #else
-    err = seL4_TCB_Configure(VERSE_FRESH_WORKER_TCB_CPTR,
+    err = seL4_TCB_Configure(fresh_tcb,
                              VERSE_WORKER_CONFIGURE_FAULT_EP_CPTR,
                              VERSE_WORKER_CSPACE_CPTR, cspace_data,
                              VERSE_WORKER_VSPACE_CPTR, VERSE_WORKER_VSPACE_ROOT_DATA,
@@ -192,10 +203,8 @@ static int rebuild_worker_tcb(void)
         printf("ProcMan: seL4_TCB_Configure failed (%d)\n", err);
         return -1;
     }
-#endif
 
-#ifndef CONFIG_KERNEL_MCS
-    err = seL4_TCB_SetPriority(VERSE_FRESH_WORKER_TCB_CPTR,
+    err = seL4_TCB_SetPriority(fresh_tcb,
                                seL4_CapInitThreadTCB,
                                VERSE_WORKER_PRIORITY);
     if (err != seL4_NoError) {
@@ -215,7 +224,7 @@ static int rebuild_worker_tcb(void)
     return -1;
 #endif
 
-    err = seL4_TCB_WriteRegisters(VERSE_FRESH_WORKER_TCB_CPTR,
+    err = seL4_TCB_WriteRegisters(fresh_tcb,
                                   false,
                                   0,
                                   sizeof(regs) / sizeof(seL4_Word),
@@ -225,13 +234,16 @@ static int rebuild_worker_tcb(void)
         return -1;
     }
 
-    err = seL4_TCB_Resume(VERSE_FRESH_WORKER_TCB_CPTR);
+    err = seL4_TCB_Resume(fresh_tcb);
     if (err != seL4_NoError) {
         printf("ProcMan: seL4_TCB_Resume failed (%d)\n", err);
         return -1;
     }
 
-    printf("ProcMan: fresh TestWorker TCB configured and resumed\n");
+    active_worker_tcb = fresh_tcb;
+    printf("ProcMan: active worker TCB moved to spare 0x%lx\n",
+           (unsigned long)active_worker_tcb);
+    printf("ProcMan: spare TestWorker TCB configured and resumed\n");
     return 0;
 }
 
@@ -242,7 +254,7 @@ static int enforced_restart_worker(int attempt)
     if (suspend_worker_tcb() != 0) {
         return -1;
     }
-    if (rebuild_worker_tcb() != 0) {
+    if (rebuild_worker_tcb(attempt) != 0) {
         printf("ProcMan: enforced rebuild failed after suspend; quarantine required\n");
         return -2;
     }

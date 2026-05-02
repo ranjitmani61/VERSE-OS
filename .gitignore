@@ -1,39 +1,8 @@
-# Build output
-build/
-build_*/
-**/build/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
-*.o
-*.obj
-*.a
-*.so
-*.elf
-*.bin
-*.img
-*.iso
-
-# seL4/CAmkES generated or external checkouts
-kernel/
-projects/
-build_adder/
-.repo/
-
-# Runtime logs and local scratch
-*.log
-*.tmp
-*.swp
-*~
-
-# TLA+/TLC generated model-checking state
-src/specs/states/
-*.fp
-*.st
-
-# Recovery snapshots are archival artifacts, not source.
-*.tar.gz
-verse_os_recovery_snapshot_*.tar.gz
+__pycache__/
+*.pyc
+generated_tcb_metadata.cmake
 out/
+run_logs/
+*.tar.gz
+src/specs/states/
 tools/tla/

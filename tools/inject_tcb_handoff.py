@@ -9,14 +9,20 @@ INSERTIONS = [
     "0x100: testworker_testworker_0_control_tcb",
     "0x101: testworker_fault_ep (R)",
     "0x102: procman_cnode (guard: 0, guard_size: 55)",
-    "0x103: verse_procman_tcb_untyped",
+    "0x104: verse_spare_worker_tcb_1",
     "0x105: testworker_cnode (guard: 0, guard_size: 61)",
     "0x106: testworker_group_bin_pd",
     "0x107: testworker_frame__camkes_ipc_buffer_testworker_0_control (RW)",
     "0x108: testworker_fault_ep (RWP)",
+    "0x109: verse_spare_worker_tcb_2",
+    "0x10a: verse_spare_worker_tcb_3",
 ]
 
-UNTYPED_DECL = "verse_procman_tcb_untyped = ut (12 bits)"
+SPARE_TCB_DECLS = [
+    "verse_spare_worker_tcb_1 = tcb",
+    "verse_spare_worker_tcb_2 = tcb",
+    "verse_spare_worker_tcb_3 = tcb",
+]
 
 REQUIRED_OBJECTS = [
     "procman_cnode",
@@ -76,21 +82,19 @@ def main() -> int:
 
     lines = text.splitlines()
 
-    # Add untyped declaration into objects block if absent.
-    if UNTYPED_DECL not in text:
-        obj_start, obj_end = find_block(lines, "objects")
-        lines.insert(obj_end, UNTYPED_DECL)
+    # Add spare TCB declarations into objects block if absent.
+    obj_start, obj_end = find_block(lines, "objects")
+    for decl in reversed(SPARE_TCB_DECLS):
+        if decl not in text and decl not in lines:
+            lines.insert(obj_end, decl)
 
     # Recompute after object insertion.
     proc_start, proc_end = find_block(lines, "procman_cnode")
     proc_body = "\n".join(lines[proc_start:proc_end + 1])
 
-    for forbidden in ["0x100:", "0x101:", "0x102:", "0x103:", "0x105:", "0x106:", "0x107:", "0x108:"]:
+    for forbidden in ["0x100:", "0x101:", "0x102:", "0x104:", "0x105:", "0x106:", "0x107:", "0x108:", "0x109:", "0x10a:"]:
         if re.search(rf"(?m)^\s*{re.escape(forbidden)}", proc_body):
             die(f"procman_cnode already has slot {forbidden}")
-
-    if re.search(r"(?m)^\s*0x104\s*:", proc_body):
-        die("procman_cnode slot 0x104 is occupied; must remain empty for runtime Retype")
 
     insertion_lines = [f"    {line}" for line in INSERTIONS]
     lines[proc_end:proc_end] = insertion_lines
@@ -99,8 +103,8 @@ def main() -> int:
     out_path.write_text("\n".join(lines) + "\n")
 
     print(f"WROTE {out_path}")
-    print("Injected ProcMan TCB handoff slots 0x100,0x101,0x102,0x103,0x105,0x106,0x107,0x108")
-    print("Left slot 0x104 empty")
+    print("Injected ProcMan TCB handoff slots 0x100,0x101,0x102,0x104,0x105,0x106,0x107,0x108,0x109,0x10a")
+    print("Injected spare TCB pool for bounded repeated recovery")
     return 0
 
 if __name__ == "__main__":
