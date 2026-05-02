@@ -8,7 +8,7 @@ from pathlib import Path
 INSERTIONS = [
     "0x100: testworker_testworker_0_control_tcb",
     "0x101: testworker_fault_ep (R)",
-    "0x102: procman_cnode (guard: 0, guard_size: 61)",
+    "0x102: procman_cnode (guard: 0, guard_size: 55)",
     "0x103: verse_procman_tcb_untyped",
     "0x105: testworker_cnode (guard: 0, guard_size: 61)",
     "0x106: testworker_group_bin_pd",
@@ -58,6 +58,17 @@ def main() -> int:
         die(f"input missing: {in_path}")
 
     text = in_path.read_text(errors="replace")
+
+    # ProcMan handoff uses slots 0x100..0x108, so ProcMan CNode must be at
+    # least 9 bits. Generated CAmkES default is normally 3 bits.
+    text = text.replace("procman_cnode = cnode (3 bits)", "procman_cnode = cnode (9 bits)")
+
+    # A 9-bit CNode needs a 55-bit guard on x86_64 instead of the generated
+    # 61-bit guard used for 3-bit CNodes.
+    text = text.replace(
+        "cspace: procman_cnode (guard: 0, guard_size: 61)",
+        "cspace: procman_cnode (guard: 0, guard_size: 55)"
+    )
 
     for obj in REQUIRED_OBJECTS:
         if obj not in text:
