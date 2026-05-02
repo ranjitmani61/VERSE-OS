@@ -9,7 +9,8 @@ Date: 2026-05-02
 Both builds completed:
 
 - Default cooperative build: PASS
-- `VERSE_TCB_ENFORCED=ON` compile path: PASS
+- `VERSE_TCB_ENFORCED=ON` compile/link path: PASS
+- Enforced ProcMan strings were observed in exported binaries from the flag-enabled build.
 
 ## Commands
 
@@ -18,18 +19,37 @@ Both builds completed:
 ./build.sh verse_unified -DVERSE_TCB_ENFORCED=ON
 ```
 
-## Observed Result
+One container-session export build was also run with:
 
-Both logs ended with:
-
-```text
-BUILD_OK:verse_unified
+```bash
+../init-build.sh -DPLATFORM=x86_64 -DSIMULATION=TRUE -DCAMKES_APP=verse_unified -DVERSE_TCB_ENFORCED=ON
+ninja
 ```
 
-Both logs also retained the known linker warning:
+## Observed Result
+
+The flag-enabled build ended with:
+
+```text
+BUILD_OK_AND_EXPORTED:verse_unified
+```
+
+Known linker warning remained:
 
 ```text
 kernel/kernel.elf has a LOAD segment with RWX permissions
+```
+
+Exported ProcMan artifacts contained these strings:
+
+```text
+ProcMan: seL4_TCB_Suspend failed (%d)
+ProcMan: seL4_TCB_Suspend(worker_tcb) OK
+ProcMan: TCB rebuild metadata missing; configure IPC addr, entry IP, and stack top
+ProcMan: enforced TCB restart attempt %d/%d
+ProcMan: enforced rebuild failed after suspend; quarantine required
+ProcMan: enforced path unavailable, falling back to cooperative restart
+seL4_TCB_Suspend
 ```
 
 ## Claim Boundary
@@ -37,7 +57,8 @@ kernel/kernel.elf has a LOAD segment with RWX permissions
 Allowed:
 
 - The default build still compiles.
-- The guarded TCB-enforced ProcMan branch compiles through a selectable CMake flag.
+- The guarded TCB-enforced ProcMan branch compiles and links through a selectable CMake flag.
+- The flag-enabled ProcMan binary contains the enforced-path strings and `seL4_TCB_Suspend` symbol/string evidence.
 - The previous source-force probe is no longer required for compile validation.
 
 Not allowed:
