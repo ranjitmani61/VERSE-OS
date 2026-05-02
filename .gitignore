@@ -36,3 +36,4 @@ src/specs/states/
 *.tar.gz
 verse_os_recovery_snapshot_*.tar.gz
 out/
+tools/tla/
