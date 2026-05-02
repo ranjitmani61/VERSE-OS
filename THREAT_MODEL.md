@@ -15,7 +15,7 @@ The current prototype is a seL4/CAmkES user-space system with these component ro
 - `LogRing`: shared log sink.
 - Clients/workers: `Client`, `Hello`, `MemClient`, `WorkerA`, `WorkerB`, `WriteClient`, `ReadClient`, `TestWorker`.
 
-The current CAmkES assembly is static. Capabilities are distributed by CAmkES at build/boot time. Dynamic capability minting, TCB suspension, persistent storage, SMP, CHERI hardware tags, and TLAPS proofs are out of scope for this prototype.
+The current CAmkES assembly is static. Capabilities are distributed by CAmkES at build/boot time. Dynamic capability minting, persistent storage, SMP, CHERI hardware tags, and TLAPS proofs are out of scope for this prototype. TCB suspension is under implementation through a native capDL handoff, but it is not enabled in the default Docker build.
 
 ## Adversary Classes
 
@@ -58,15 +58,17 @@ Threat: a compromised, wedged, or adversarial worker can stop reading `restart_f
 
 Impact: the current prototype demonstrates a recovery protocol and persistent monitoring loop, not enforceable kernel-level restart. A non-cooperative worker can defeat recovery after detection.
 
-Mitigation path: give ProcMan narrowly scoped authority over the managed worker TCB. On timeout or fault, ProcMan should call `seL4_TCB_Suspend(worker_tcb)`, revoke or tear down the worker CSpace/VSpace, rebuild the worker address space from a known-good template, set registers, IPC buffer, scheduling context, and entry point, then resume a fresh worker TCB.
+Mitigation status: implementation started, capDL drafted. `src/capdl/verse_tcb_handoff.cdl` reserves a ProcMan CNode slot for the TestWorker TCB cap and routes the TestWorker fault endpoint to ProcMan. ProcMan now has a `VERSE_TCB_ENFORCED` code path that calls `seL4_TCB_Suspend(worker_tcb)` when the native build supplies that cap.
 
-Residual risk: until the CAmkES/capDL build hands ProcMan the required worker TCB and resource capabilities, VERSE OS must describe this path as cooperative restart signaling rather than forced respawn.
+Remaining mitigation path: the native build must apply the capDL overlay to the generated CAmkES capDL spec, hand ProcMan the worker TCB and fault endpoint caps, revoke or tear down the worker CSpace/VSpace on failure, rebuild the worker address space from a known-good template, set registers, IPC buffer, scheduling context, and entry point, then resume a fresh worker TCB.
+
+Residual risk: until the native capDL build successfully boots and logs `seL4_TCB_Suspend(worker_tcb) OK` plus resource teardown and fresh TCB resume, VERSE OS must describe the default runtime path as cooperative restart signaling rather than forced respawn.
 
 ## Non-Goals
 
 - No claim of whole-system compositional liveness.
 - No claim of complete side-channel elimination.
-- No claim of dynamic `seL4_TCB` restart in the current build.
+- No claim of completed dynamic `seL4_TCB` restart in the current default build.
 - No claim of CHERI pointer-forgery resistance on x86/QEMU.
 - No claim of persistent tamper evidence without a block device and immutable root hash.
 - No claim that bounded TLC model checking is equivalent to unbounded TLAPS proof.

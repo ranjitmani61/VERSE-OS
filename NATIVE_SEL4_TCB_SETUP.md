@@ -43,6 +43,82 @@ Connector search result: no `seL4TCB` connector definition was found in `project
 
 Conclusion: Priority 3 cannot be completed by simply wiring a stock `seL4TCB` CAmkES connector at this revision. Real ProcMan-enforced restart needs a custom capDL/root-task authority handoff.
 
+## Ubuntu 24.10 Docker Attempt - 2026-05-02
+
+Ubuntu 24.10 (`oracular`) now needs `old-releases.ubuntu.com` inside the container. A plain `apt-get update` against the default `archive.ubuntu.com` and `security.ubuntu.com` sources failed with:
+
+```text
+E: The repository 'http://archive.ubuntu.com/ubuntu oracular Release' does not have a Release file.
+E: The repository 'http://security.ubuntu.com/ubuntu oracular-security Release' does not have a Release file.
+```
+
+After replacing the container apt sources with `old-releases.ubuntu.com`, the container reported:
+
+```text
+Python 3.12.7
+```
+
+The first CMake attempt failed because `python3-yaml` was not installed:
+
+```text
+ModuleNotFoundError: No module named 'yaml'
+```
+
+After adding `python3-yaml`, CAmkES parsing failed because the CAmkES parser stack was not installed:
+
+```text
+ModuleNotFoundError: No module named 'plyplus'
+```
+
+Installing the synced CAmkES dependency metapackage fixed the parser dependency stack:
+
+```bash
+pip3 install --break-system-packages ./projects/camkes-tool/tools/python-deps
+```
+
+With those Python dependencies installed, CMake configuration succeeded and Ninja started compiling. The build then stopped during libsel4 syscall header generation because the container was missing `xmllint`:
+
+```text
+/work/kernel/tools/xmllint.sh: line 14: xmllint: command not found
+ninja: build stopped: subcommand failed.
+```
+
+Conclusion: Ubuntu 24.10 is not blocked by the host Python 3.14 issue when used in Docker. Python 3.12.7 reaches CAmkES generation after installing `camkes-tool/tools/python-deps`. The next 24.10 retry should add `libxml2-utils` for `xmllint`; this run did not yet produce a complete native image.
+
+## Native Ubuntu 26 Quick Check - 2026-05-02
+
+The native host is:
+
+```text
+Ubuntu 26.04 LTS
+Python 3.14.4
+```
+
+No native seL4/CAmkES checkout was present under the repository root, so no full host build was attempted. A narrow Python compatibility check was run in an isolated `/tmp` virtual environment instead:
+
+```bash
+python3 -m venv /tmp/verse_py314_camkes_check
+/tmp/verse_py314_camkes_check/bin/python -m pip install camkes-deps==0.7.4
+```
+
+Result: the CAmkES dependency metapackage installed under Python 3.14.4, and the key modules imported successfully: `yaml`, `plyplus`, `jinja2`, `ordered_set`, `elftools`, `pyfdt`, `hypothesis`, and `sortedcontainers`.
+
+A shallow `camkes-tool` source import check at the previously inspected revision also passed:
+
+```text
+CAMKES_IMPORT_OK
+```
+
+It emitted only this warning:
+
+```text
+SyntaxWarning: "\W" is an invalid escape sequence
+```
+
+Native host tools present: `git`, `repo`, `cmake`, `ninja`, `gcc`, `g++`, `xmllint`, and `python3-yaml`. `qemu-system-x86` was not on PATH.
+
+Conclusion: Python 3.14 is no longer proven-bad at the dependency/import level. It may be viable for a native build, but it is still less reproducible than the Docker path because there is no native checkout yet and QEMU is missing. Do not switch the main TCB path back to host-native until a full manifest sync and build are intentionally attempted.
+
 ## Custom capDL Extension Needed
 
 If the selected CAmkES revision remains connector-limited, the custom path must:
@@ -83,13 +159,15 @@ Inside that container:
 apt-get update
 apt-get install -y \
     build-essential cmake ninja-build git curl ca-certificates \
-    python3.12 python3.12-venv python3-pip python3-six \
+    python3.12 python3.12-venv python3-pip python3-six python3-yaml \
+    libxml2-utils \
     qemu-system-x86 repo
 
 mkdir -p /work/sel4
 cd /work/sel4
 repo init -u https://github.com/seL4/camkes-manifest.git
 repo sync -j"$(nproc)"
+pip3 install --break-system-packages ./projects/camkes-tool/tools/python-deps
 ```
 
 Then copy VERSE OS apps into the checked-out CAmkES app tree and test whether the selected CAmkES revision supports direct TCB capability connectors. If it does not, the next step is a custom root-task or capDL extension that hands ProcMan the worker TCB capability explicitly.
