@@ -1,0 +1,46 @@
+APP verse_unified
+ASSEMBLY /home/king/verse_os/src/apps/verse_unified/verse_unified.camkes
+COMPONENTS 15
+  logring:LogRing [control ; dataports=logbuf]
+  sentinel:Sentinel [provides=client_h ; uses=server_h ; dataports=logbuf]
+  hello:Hello [provides=h ; dataports=logbuf]
+  client:Client [control ; uses=h ; dataports=logbuf]
+  cortexmm:CortexMM [control ; dataports=page_allocatable,logbuf]
+  memclient:MemClient [control ; dataports=allocated_page,logbuf]
+  worker_a:WorkerA [control ; dataports=shared,logbuf]
+  worker_b:WorkerB [control ; dataports=shared,logbuf]
+  dharmanet:DharmaNet [control ; dataports=workerA_buf,workerB_buf,severity_buf,logbuf]
+  codexfs:CodexFS [control ; provides=fs ; dataports=store,logbuf]
+  writeclient:WriteClient [control ; uses=fs ; dataports=logbuf]
+  readclient:ReadClient [control ; uses=fs ; dataports=store,logbuf]
+  testworker:TestWorker [control ; dataports=heartbeat,restart_flag,logbuf]
+  watchdog:Watchdog [control ; dataports=heartbeat,kill_flag,logbuf]
+  procman:ProcMan [control ; dataports=kill_flag,restart_flag,severity_buf,logbuf]
+CONNECTIONS 26
+  ls: seL4SharedData sentinel.logbuf -> logring.logbuf
+  lh: seL4SharedData hello.logbuf -> logring.logbuf
+  lc: seL4SharedData client.logbuf -> logring.logbuf
+  lm: seL4SharedData cortexmm.logbuf -> logring.logbuf
+  lmc: seL4SharedData memclient.logbuf -> logring.logbuf
+  la: seL4SharedData worker_a.logbuf -> logring.logbuf
+  lb: seL4SharedData worker_b.logbuf -> logring.logbuf
+  ld: seL4SharedData dharmanet.logbuf -> logring.logbuf
+  lx: seL4SharedData codexfs.logbuf -> logring.logbuf
+  lw: seL4SharedData writeclient.logbuf -> logring.logbuf
+  lr: seL4SharedData readclient.logbuf -> logring.logbuf
+  lt: seL4SharedData testworker.logbuf -> logring.logbuf
+  lwd: seL4SharedData watchdog.logbuf -> logring.logbuf
+  lp: seL4SharedData procman.logbuf -> logring.logbuf
+  rpc: seL4RPCCall client.h -> sentinel.client_h
+  rpc2: seL4RPCCall sentinel.server_h -> hello.h
+  mem: seL4SharedData cortexmm.page_allocatable -> memclient.allocated_page
+  wa: seL4SharedData worker_a.shared -> dharmanet.workerA_buf
+  wb: seL4SharedData worker_b.shared -> dharmanet.workerB_buf
+  fsw: seL4RPCCall writeclient.fs -> codexfs.fs
+  fsr: seL4RPCCall readclient.fs -> codexfs.fs
+  fstore: seL4SharedData codexfs.store -> readclient.store
+  hb: seL4SharedData testworker.heartbeat -> watchdog.heartbeat
+  kf: seL4SharedData watchdog.kill_flag -> procman.kill_flag
+  rf: seL4SharedData procman.restart_flag -> testworker.restart_flag
+  sev: seL4SharedData dharmanet.severity_buf -> procman.severity_buf
+AUDIT_OK

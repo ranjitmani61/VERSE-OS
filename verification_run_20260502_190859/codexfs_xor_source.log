@@ -1,0 +1,2 @@
+5:static unsigned char cs(const unsigned char *d,int n){unsigned char s=0; for(int i=0;i<n;i++)s^=d[i]; return s;}
+14:int fs_write(const char *d){if(st==0||rf==0||bc>=MB)return -1; Block *b=&st[bc]; b->ph=(bc==0)?0:st[bc-1].h; strncpy(b->data,d,BS-2); b->data[BS-3]=0; b->h=cs((unsigned char*)b,BS-1); bc++; *rf=bc; return bc-1;}

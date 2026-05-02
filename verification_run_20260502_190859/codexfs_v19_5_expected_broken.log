@@ -1,0 +1,98 @@
+=== TLC EXPECT FAIL codexfs_v19_5_expected_broken ===
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 62 and seed -2745787820829952931 with 1 worker on 24 cores with 3641MB heap and 64MB offheap memory [pid: 56724] (Linux 7.0.0-14-generic amd64, Ubuntu 25.0.3-ea x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /home/king/verse_os/CodexFS_Monotonic_v19_5.tla
+Parsing file /tmp/Integers.tla
+Parsing file /tmp/FiniteSets.tla
+Parsing file /tmp/Sequences.tla
+Parsing file /tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Integers
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module CodexFS_Monotonic_v19_5
+Starting... (2026-05-02 19:09:08)
+Implied-temporal checking--satisfiability problem has 2 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-05-02 19:09:08.
+Error: Deadlock reached.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ k_result = "NONE"
+/\ sys_ops = 16
+/\ system_status = "NORMAL"
+/\ k_state = "IDLE"
+/\ user_ops = 3
+/\ snap_idx = 0
+/\ commit_index = 1
+/\ k_idx = 0
+/\ snapshot = <<>>
+/\ validated_index = 1
+/\ log = <<[data |-> 0, hash |-> 1, ver |-> 1]>>
+/\ committed_vers = <<1>>
+
+State 2: <KernelStartSnapshot line 72, col 5 to line 80, col 59 of module CodexFS_Monotonic_v19_5>
+/\ k_result = "NONE"
+/\ sys_ops = 15
+/\ system_status = "NORMAL"
+/\ k_state = "SNAP_READ"
+/\ user_ops = 3
+/\ snap_idx = 2
+/\ commit_index = 1
+/\ k_idx = 1
+/\ snapshot = <<[data |-> 0, hash |-> 1, ver |-> 1]>>
+/\ validated_index = 1
+/\ log = <<[data |-> 0, hash |-> 1, ver |-> 1]>>
+/\ committed_vers = <<1>>
+
+State 3: <UserAppend line 52, col 5 to line 59, col 93 of module CodexFS_Monotonic_v19_5>
+/\ k_result = "NONE"
+/\ sys_ops = 15
+/\ system_status = "NORMAL"
+/\ k_state = "SNAP_READ"
+/\ user_ops = 2
+/\ snap_idx = 2
+/\ commit_index = 1
+/\ k_idx = 1
+/\ snapshot = <<[data |-> 0, hash |-> 1, ver |-> 1]>>
+/\ validated_index = 1
+/\ log = <<[data |-> 0, hash |-> 1, ver |-> 1], [data |-> 0, hash |-> 3, ver |-> 1]>>
+/\ committed_vers = <<1>>
+
+State 4: <UserAppend line 52, col 5 to line 59, col 93 of module CodexFS_Monotonic_v19_5>
+/\ k_result = "NONE"
+/\ sys_ops = 15
+/\ system_status = "NORMAL"
+/\ k_state = "SNAP_READ"
+/\ user_ops = 1
+/\ snap_idx = 2
+/\ commit_index = 1
+/\ k_idx = 1
+/\ snapshot = <<[data |-> 0, hash |-> 1, ver |-> 1]>>
+/\ validated_index = 1
+/\ log = << [data |-> 0, hash |-> 1, ver |-> 1],
+   [data |-> 0, hash |-> 3, ver |-> 1],
+   [data |-> 0, hash |-> 7, ver |-> 1] >>
+/\ committed_vers = <<1>>
+
+State 5: <UserAppend line 52, col 5 to line 59, col 93 of module CodexFS_Monotonic_v19_5>
+/\ k_result = "NONE"
+/\ sys_ops = 15
+/\ system_status = "NORMAL"
+/\ k_state = "SNAP_READ"
+/\ user_ops = 0
+/\ snap_idx = 2
+/\ commit_index = 1
+/\ k_idx = 1
+/\ snapshot = <<[data |-> 0, hash |-> 1, ver |-> 1]>>
+/\ validated_index = 1
+/\ log = << [data |-> 0, hash |-> 1, ver |-> 1],
+   [data |-> 0, hash |-> 3, ver |-> 1],
+   [data |-> 0, hash |-> 7, ver |-> 1],
+   [data |-> 0, hash |-> 15, ver |-> 1] >>
+/\ committed_vers = <<1>>
+
+258 states generated, 192 distinct states found, 85 states left on queue.
+The depth of the complete state graph search is 6.
+The average outdegree of the complete state graph is 2 (minimum is 0, the maximum 5 and the 95th percentile is 4).
+Finished in 00s at (2026-05-02 19:09:08)

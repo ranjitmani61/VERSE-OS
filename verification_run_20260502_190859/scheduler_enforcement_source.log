@@ -1,0 +1,2 @@
+/home/king/verse_os/src/apps/verse_unified/components/ProcMan/src/procman.c:188:    err = seL4_TCB_SetSchedParams(fresh_tcb,
+/home/king/verse_os/src/apps/verse_unified/components/ProcMan/src/procman.c:195:        printf("ProcMan: seL4_TCB_SetSchedParams failed (%d)\n", err);

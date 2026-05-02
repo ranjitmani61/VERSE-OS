@@ -1,0 +1,55 @@
+Root: /home/king/verse_os
+PASS: TLA sentinel_lattice_safety
+PASS: TLA cortexmm_capability_safety
+PASS: TLA dharmanet_budget_monitor
+PASS: TLA codexfs_runtime_xor_type
+PASS: TLA codexfs_runtime_xor_deadlock
+PASS: TLA codexfs_runtime_xor_goodchain
+PASS: TLA recovery_task_type
+PASS: TLA recovery_task_deadlock
+WARN: Recovery_Task_tcb_type.cfg not found
+WARN: Recovery_Task_tcb_deadlock.cfg not found
+PASS: Expected failing model still fails: codexfs_v19_5_expected_broken
+PASS: static CAmkES capability audit
+PASS: src/tools/audit_caps.py audit
+PASS: found TCB_HANDOFF_IMAGE_BUILD_EVIDENCE.md
+PASS: found TCB_SUSPEND_RUNTIME_EVIDENCE.md
+PASS: found TCB_RECOVERY_PASS_MARKER_EVIDENCE.md
+PASS: found TCB_REPEATED_RECOVERY_SPARE_POOL_EVIDENCE.md
+PASS: found TCB_CRITIC_CLEANUP_AUDIT.md
+PASS: TCB handoff image build marker
+PASS: runtime seL4_TCB_Suspend marker
+PASS: single TCB recovery PASS marker
+PASS: three bounded TCB recovery markers plus quarantine
+PASS: runtime marker: Booting all finished, dropped to user space
+PASS: runtime marker: CORTEX: ok
+PASS: runtime marker: CODEX: ok
+PASS: runtime marker: S: FORWARD
+PASS: runtime marker: WRITER: done
+PASS: runtime marker: READER: ok
+PASS: runtime marker: WDOG: active monitoring
+PASS: runtime marker: WDOG: heartbeat lost
+PASS: runtime marker: ProcMan: restart attempt
+PASS: runtime marker: WDOG: heartbeat resumed
+PASS: CodexFS runtime source uses XOR/checksum shape
+PASS: No runtime cryptographic implementation markers found in CodexFS source
+WARN: scheduler-control markers found; inspect whether enforcement is real
+WARN: Strong-claim lint written to /home/king/verse_os/verification_run_20260502_190859/strong_claim_lint.log. Manually downgrade unsupported claims.
+
+SUPPORTED IF ABOVE PASSED:
+- Buildable / bootable seL4-CAmkES prototype, if build/runtime logs are current.
+- Scoped bounded TLA+ checks for Sentinel, CortexMM, DharmaNet.
+- Runtime-faithful bounded CodexFS XOR checksum-chain model, if CodexFS_Runtime_XOR checks passed.
+- Static CAmkES capability graph audit, if audit tools passed.
+- Bounded runtime TCB recovery evidence, if TCB markers are present.
+
+NOT SUPPORTED BY THIS SUITE:
+- Whole-OS mathematical proof.
+- TLAPS/unbounded theorem proof.
+- Cryptographic CodexFS.
+- Persistent storage integrity.
+- Full scheduler enforcement.
+- Resource leak freedom after repeated TCB respawn.
+- Old TCB revoke/delete proof.
+- Side-channel freedom.
+- Production-ready security.
