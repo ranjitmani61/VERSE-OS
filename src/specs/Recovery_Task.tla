@@ -10,7 +10,7 @@ ASSUME MaxMisses > 0 /\ MaxRestarts > 0
 \* voluntarily checks that flag. There is no seL4_TCB_Suspend, CSpace revoke, or
 \* VSpace teardown in this baseline model.
 
-WorkerStates == {"RUNNING", "DEAD", "RESTARTING"}
+WorkerStates == {"RUNNING", "DEAD", "RESTARTING", "ESCALATED"}
 WatchdogStates == {"MONITORING", "DETECTED", "REARMING"}
 ProcManStates == {"IDLE", "SIGNALING"}
 
@@ -52,6 +52,14 @@ TypeOK ==
     /\ restart_count \in 0..MaxRestarts
     /\ worker_checks_flag \in BOOLEAN
 
+\* TLC-only bounded exploration constraint. The mathematical model allows the
+\* heartbeat counter to grow in Nat; model checking must bound it explicitly.
+StateConstraint ==
+    /\ heartbeat \in 0..3
+    /\ last_heartbeat \in 0..3
+    /\ missed_polls \in 0..MaxMisses
+    /\ restart_count \in 0..MaxRestarts
+
 WorkerTick ==
     /\ worker_state = "RUNNING"
     /\ heartbeat' = heartbeat + 1
@@ -70,7 +78,7 @@ WatchdogObserveAlive ==
     /\ heartbeat # last_heartbeat
     /\ last_heartbeat' = heartbeat
     /\ missed_polls' = 0
-    /\ UNCHANGED << worker_state, procman_state, heartbeat,
+    /\ UNCHANGED << worker_state, watchdog_state, procman_state, heartbeat,
                     restart_flag, restart_count, worker_checks_flag >>
 
 WatchdogMiss ==
@@ -129,6 +137,19 @@ WatchdogRearm ==
     /\ UNCHANGED << worker_state, procman_state, heartbeat, last_heartbeat,
                     missed_polls, restart_flag, restart_count, worker_checks_flag >>
 
+RecoveryEscalate ==
+    /\ worker_state = "DEAD"
+    /\ watchdog_state = "DETECTED"
+    /\ procman_state = "IDLE"
+    /\ restart_count = MaxRestarts
+    /\ worker_state' = "ESCALATED"
+    /\ UNCHANGED << watchdog_state, procman_state, heartbeat, last_heartbeat,
+                    missed_polls, restart_flag, restart_count, worker_checks_flag >>
+
+EscalatedTerminal ==
+    /\ worker_state = "ESCALATED"
+    /\ UNCHANGED Vars
+
 Next ==
     \/ WorkerTick
     \/ WorkerHang
@@ -139,19 +160,25 @@ Next ==
     \/ WorkerCheckRestartFlag
     \/ WorkerReinitialize
     \/ WatchdogRearm
+    \/ RecoveryEscalate
+    \/ EscalatedTerminal
 
 \* Honest baseline liveness target. This depends on fairness for the worker's
 \* own flag check; a compromised or hard-hung worker can violate it.
-CooperativeRecovery == worker_state = "DEAD" ~> worker_state = "RUNNING"
+CooperativeRecoveryResolution ==
+    worker_state = "DEAD" ~> (worker_state = "RUNNING" \/ worker_state = "ESCALATED")
 
 Spec ==
     /\ Init
     /\ [][Next]_Vars
+    /\ WF_Vars(WatchdogObserveAlive)
+    /\ WF_Vars(WatchdogMiss)
     /\ WF_Vars(WatchdogDetect)
     /\ WF_Vars(ProcManSignal)
     /\ WF_Vars(WorkerCheckRestartFlag)
     /\ WF_Vars(WorkerReinitialize)
     /\ WF_Vars(WatchdogRearm)
+    /\ WF_Vars(RecoveryEscalate)
 
 THEOREM Spec => []TypeOK
 =============================================================================
