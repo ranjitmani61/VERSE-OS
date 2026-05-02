@@ -16,6 +16,7 @@ The formal work is a collection of scoped safety models, not a single proof of t
 - `src/specs/DharmaNet_Budget.tla`: recovered scoped budget monitor model.
 - `src/specs/Recovery_Task.tla`: cooperative recovery model with bounded TypeOK, deadlock, and recovery-resolution checks.
 - `src/specs/Recovery_TCB.tla`: standalone bounded TCB recovery/refinement-shape model for the guarded native restart path.
+- `src/specs/Bounded_Active_TCB_Failover.tla`: bounded active-TCB slot failover model for `0x100 -> 0x104 -> 0x109 -> 0x10a -> Quarantined`.
 
 ## Proven Or Model-Checked Properties
 
@@ -23,24 +24,31 @@ The formal work is a collection of scoped safety models, not a single proof of t
 - CortexMM: a component cannot legally access a page unless that page has been granted.
 - DharmaNet: observed resource use never exceeds the modeled budget without entering a warning/critical state.
 - CodexFS: committed prefix remains valid under the model's append/tamper/commit rules.
+- Bounded active-TCB failover: TLC checks that the active TCB is never quarantined, each recovery uses a fresh unused spare, retry count stays `<= 3`, normal recovery reaches `StableRecovered`, and exhausted spare pool reaches `Quarantined`.
 
 ## Known Gaps
 
 - The models are bounded TLC-style models unless explicitly lifted to TLAPS.
 - The current specs do not form a single compositional system model.
+- `Bounded_Active_TCB_Failover.tla` is a bounded abstract failover model, not a C refinement proof, TLAPS proof, capDL proof, or seL4 kernel proof.
 - Watchdog restart semantics are not yet integrated into CodexFS liveness.
 - SMP interleavings are not modeled for the shared dataports.
 
-## In Progress: TCB Recovery Refinement
+## TCB Recovery Refinement Status
 
-The TCB restart path has moved from documentation-only to implementation artifacts:
+The TCB restart path has moved beyond documentation-only artifacts. Current
+runtime evidence separately demonstrates bounded active-TCB failover with
+watchdog-confirmed worker recovery. The formal artifacts remain scoped models,
+not full implementation refinement proofs.
 
-- `src/capdl/verse_tcb_handoff.cdl` drafts the ProcMan/TestWorker authority handoff: ProcMan gets a designated TestWorker TCB cap slot and a receive cap for the TestWorker fault endpoint.
-- `CAPDL_INTEGRATION.md` describes how the overlay must be applied to the generated CAmkES capDL output.
-- `src/apps/verse_unified/components/ProcMan/src/procman.c` now has a `VERSE_TCB_ENFORCED` path that calls `seL4_TCB_Suspend(worker_tcb)` when the native build supplies the cap.
+- `tools/inject_tcb_handoff.py` injects the ProcMan/TestWorker authority handoff into generated capDL.
+- `src/apps/verse_unified/components/ProcMan/src/procman.c` has a `VERSE_TCB_ENFORCED` path that suspends the active worker TCB, configures a spare TCB, and resumes it.
 - `src/specs/Recovery_TCB.tla` contains the standalone TCB recovery model with forced suspend, fault endpoint trigger, resource revoke, fresh TCB, and resume transitions.
+- `src/specs/Bounded_Active_TCB_Failover.tla` models the bounded concrete active-TCB sequence and spare-pool exhaustion.
 
-This is not yet a completed enforced-respawn proof or runtime. The current repository has bounded TLC evidence for the standalone TCB model and a guarded C compile skeleton, but the real native build still must inject the caps, implement CSpace/VSpace teardown, configure the fresh TCB, and discharge any full refinement proof with TLAPS or a stronger model.
+The remaining formal gap is a real refinement proof from C/capDL execution to
+the TLA+ model. TCB cap delete/revoke cleanup and real fault endpoint
+receive/decode handling are also not proven.
 
 ## Model/Runtime Semantic Gap
 
@@ -51,12 +59,15 @@ The runtime recovery path is different. A worker can hang or fault asynchronousl
 Therefore, the current formal claims should be read as scoped layer guarantees:
 
 - Sentinel, CortexMM, DharmaNet, and CodexFS are model-checked as independent enforcement protocols.
-- The running unified demo validates integration and failure observation/recovery signaling.
-- `Recovery_Task.tla` covers the cooperative `RUNNING -> DEAD -> RESTARTING -> RUNNING` lifecycle.
+- The running unified evidence validates bounded active-TCB failover with watchdog-confirmed recovery.
+- `Recovery_Task.tla` covers the older cooperative `RUNNING -> DEAD -> RESTARTING -> RUNNING` lifecycle.
 - `Recovery_TCB.tla` is a standalone bounded refinement-shape model for enforced suspend/revoke/fresh-TCB recovery.
-- The runtime must still complete native capDL integration and fresh TCB construction before claiming real process resurrection.
+- `Bounded_Active_TCB_Failover.tla` covers the concrete bounded active-TCB sequence and quarantine behavior.
 
-This is an architectural boundary, not a contradiction: the model proves safety properties of serialized enforcement layers; the current runtime demonstrates cooperative recovery; the next implementation phase is closing the gap with TCB authority, capDL handoff, and a formal recovery refinement.
+This is an architectural boundary, not a contradiction: the model proves safety
+properties of serialized enforcement layers; the runtime evidence proves the
+bounded active-TCB failover path; the remaining formal work is refinement, not a
+full OS proof.
 
 ## Next Verification Work
 
