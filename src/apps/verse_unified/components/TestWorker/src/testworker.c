@@ -12,6 +12,7 @@ void verse_recovery_entry(void)
 
     int counter = 1000000;
 
+#ifdef VERSE_TESTWORKER_REPEAT_DEADLOCK
     for (int i = 0; i < 5; i++) {
         *hb = ++counter;
         for (volatile int d = 0; d < 10000000; d++);
@@ -24,6 +25,12 @@ void verse_recovery_entry(void)
     while (1) {
         for (volatile int d = 0; d < 1000000; d++);
     }
+#else
+    while (1) {
+        *hb = ++counter;
+        for (volatile int d = 0; d < 10000000; d++);
+    }
+#endif
 }
 
 int run(void){

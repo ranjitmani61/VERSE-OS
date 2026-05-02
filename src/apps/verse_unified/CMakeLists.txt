@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16.0)
 project(verse_unified C)
 
 option(VERSE_TCB_ENFORCED "Enable guarded ProcMan native seL4 TCB restart path" OFF)
+option(VERSE_TESTWORKER_REPEAT_DEADLOCK "Enable repeated TestWorker deadlock fault injection after recovery" OFF)
 
 if(VERSE_TCB_ENFORCED)
     add_compile_definitions(VERSE_TCB_ENFORCED)
@@ -23,6 +24,11 @@ if(VERSE_TCB_ENFORCED)
     add_compile_definitions(VERSE_WORKER_PRIORITY=254)
     add_compile_definitions(VERSE_WORKER_MAX_PRIORITY=254)
 endif()
+
+if(VERSE_TESTWORKER_REPEAT_DEADLOCK)
+    add_compile_definitions(VERSE_TESTWORKER_REPEAT_DEADLOCK)
+endif()
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/components/LogRing)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/components/Sentinel)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/components/Hello)
