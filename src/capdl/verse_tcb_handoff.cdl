@@ -1,0 +1,74 @@
+/*
+ * VERSE OS TCB handoff overlay for the native seL4/CAmkES build path.
+ *
+ * Status: integration draft, not a complete bootable capDL system spec.
+ *
+ * Purpose:
+ * - reserve a ProcMan CNode slot for a TestWorker TCB capability;
+ * - describe TestWorker's managed TCB object;
+ * - route TestWorker faults to a ProcMan-owned endpoint.
+ *
+ * The synced CAmkES revision has no stock seL4TCB connector, so these
+ * capabilities must be injected by a custom capDL/root-task step after the
+ * normal CAmkES capDL spec is generated. Object names and slot numbers below
+ * are the intended stable handoff names; the integration pass must rewrite
+ * them to the generated object names or force CAmkES to emit these names.
+ */
+
+arch x86_64
+
+objects {
+    procman_cnode = cnode (12 bits)
+    procman_fault_ep = ep
+    procman_retype_untyped = ut (12 bits)
+
+    testworker_cnode = cnode (12 bits)
+    testworker_vspace = pml4
+    testworker_ipc_buffer = frame (4k)
+    testworker_tcb = tcb (fault_ep: 0x00000002)
+}
+
+caps {
+    /*
+     * TestWorker TCB setup. The fault_ep value above points at CPtr 0x2 in
+     * TestWorker's CSpace, matching the CAmkES-generated fault handler pattern.
+     */
+    testworker_tcb {
+        cspace: testworker_cnode (guard: 0, guard_size: 52)
+        vspace: testworker_vspace
+        ipc_buffer_slot: testworker_ipc_buffer (RW)
+    }
+
+    testworker_cnode {
+        0x1: testworker_tcb
+        0x2: procman_fault_ep (RWP, badge: 0x5457)
+    }
+
+    /*
+     * ProcMan authority handoff. Slot 0x100 is the designated worker TCB cap
+     * consumed by ProcMan when VERSE_TCB_ENFORCED is enabled. Slot 0x101 is
+     * the receive side of the worker fault endpoint.
+     *
+     * Runtime rebuild inputs:
+     * - 0x102: ProcMan CNode cap, used as the destination root for Retype.
+     * - 0x103: untyped memory large enough to create one TCB.
+     * - 0x104: empty destination slot for the fresh TCB cap.
+     * - 0x105: TestWorker CSpace root cap for TCB_Configure.
+     * - 0x106: TestWorker VSpace root cap for TCB_Configure.
+     * - 0x107: TestWorker IPC buffer frame cap for TCB_Configure.
+     * - 0x108: TestWorker fault endpoint cap for TCB_Configure.
+     */
+    procman_cnode {
+        0x100: testworker_tcb
+        0x101: procman_fault_ep (R)
+        0x102: procman_cnode (guard: 0, guard_size: 52)
+        0x103: procman_retype_untyped
+        0x105: testworker_cnode (guard: 0, guard_size: 52)
+        0x106: testworker_vspace
+        0x107: testworker_ipc_buffer (RW)
+        0x108: procman_fault_ep (RWP, badge: 0x5457)
+    }
+}
+
+irq maps {
+}
