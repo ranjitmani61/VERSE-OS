@@ -2,6 +2,8 @@
 set -e
 
 APP="${1:-verse_unified}"
+shift || true
+EXTRA_CMAKE_ARGS="$*"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 docker run --rm -v "$ROOT:/host" user_img-king bash -lc "
@@ -12,7 +14,7 @@ docker run --rm -v "$ROOT:/host" user_img-king bash -lc "
     rm -rf build_$APP
     mkdir build_$APP
     cd build_$APP
-    ../init-build.sh -DPLATFORM=x86_64 -DSIMULATION=TRUE -DCAMKES_APP=$APP
+    ../init-build.sh -DPLATFORM=x86_64 -DSIMULATION=TRUE -DCAMKES_APP=$APP $EXTRA_CMAKE_ARGS
     ninja
     echo BUILD_OK:$APP
 "
