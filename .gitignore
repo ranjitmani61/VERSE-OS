@@ -27,6 +27,12 @@ build_adder/
 *.swp
 *~
 
+# TLA+/TLC generated model-checking state
+src/specs/states/
+*.fp
+*.st
+
 # Recovery snapshots are archival artifacts, not source.
 *.tar.gz
 verse_os_recovery_snapshot_*.tar.gz
+out/
