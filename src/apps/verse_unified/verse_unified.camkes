@@ -55,6 +55,7 @@ assembly {
         connection seL4SharedData fstore(from codexfs.store, to readclient.store);
         connection seL4SharedData hb(from testworker.heartbeat, to watchdog.heartbeat);
         connection seL4SharedData kf(from watchdog.kill_flag, to procman.kill_flag);
+        connection seL4SharedData rs(from watchdog.recovery_signal, to dharmanet.recovery_signal);
         connection seL4SharedData rf(from procman.restart_flag, to testworker.restart_flag);
         connection seL4SharedData sev(from dharmanet.severity_buf, to procman.severity_buf);
     }

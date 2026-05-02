@@ -16,13 +16,22 @@ int run(void){
     volatile unsigned long *a=(volatile unsigned long*)workerA_buf;
     volatile unsigned long *b=(volatile unsigned long*)workerB_buf;
     volatile int *sev_out = (volatile int*)severity_buf;
+    volatile int *recovery = (volatile int*)recovery_signal;
     unsigned long hist[SMOOTH_WIN]={0}; int hi=0,hcnt=0; unsigned long hsum=0;
-    int warned=0,crit=0,aw=0,bo=0,ac=0,bc=0,ep=0,crit_ep=0; char last='O';
+    int warned=0,crit=0,aw=0,bo=0,ac=0,bc=0,ep=0,crit_ep=0,seen_recovery=0; char last='O';
     *sev_out=0;
     lw("DHARMA: strict hysteresis + escalation\n");
     while(1){
         for(volatile int i=0;i<5000000;i++);
-        unsigned long ta=*a,tb=*b; *a=*b=0; unsigned long t=ta+tb; if(!t)continue;
+        int recovery_pass = *recovery;
+        if(recovery_pass!=0 && recovery_pass!=seen_recovery){
+            seen_recovery=recovery_pass;
+            warned=0; crit=0; aw=0; ac=0; bc=0; bo=0; crit_ep=0; ep=0; last='O'; *sev_out=0;
+            lw("DHARMA: OK after recovery\n");
+            continue;
+        }
+        unsigned long ta=*a,tb=*b; *a=*b=0;
+        unsigned long t=ta+tb; if(!t)continue;
         int pa=(int)(ta*100/t);
         if(hcnt<SMOOTH_WIN){hist[hcnt]=pa;hsum+=pa;hcnt++;}else{hsum-=hist[hi];hist[hi]=pa;hsum+=pa;hi=(hi+1)%SMOOTH_WIN;}
         unsigned long sp=hcnt==SMOOTH_WIN?hsum/SMOOTH_WIN:pa;

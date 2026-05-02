@@ -6,7 +6,9 @@ int run(void){
     volatile int *hb = (volatile int*)heartbeat;
     volatile int *rd = (volatile int*)((char*)heartbeat+4092);
     volatile int *kflag = (volatile int*)kill_flag;
+    volatile int *rsig = (volatile int*)recovery_signal;
     *kflag = 0;
+    *rsig = 0;
     while (*rd == 0);
     printf("WDOG: active monitoring\n");
     int recovery_passes = 0;
@@ -32,6 +34,7 @@ int run(void){
         printf("WDOG: recovery heartbeat received (%d)\n", recovered);
         if (recovered >= 1000000) {
             recovery_passes++;
+            *rsig = recovery_passes;
             printf("WDOG: recovered worker entry heartbeat proof\n");
             printf("VERSE_RECOVERY_PASS_%d\n", recovery_passes);
         }
