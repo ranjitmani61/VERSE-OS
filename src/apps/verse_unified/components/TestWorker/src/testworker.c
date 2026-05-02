@@ -1,6 +1,22 @@
 #include <camkes.h>
 #include <stdio.h>
 #include <camkes/dataport.h>
+
+__attribute__((used, noinline, noreturn))
+void verse_recovery_entry(void)
+{
+    volatile int *hb = (volatile int*)heartbeat;
+    volatile int *rf = (volatile int*)restart_flag;
+
+    *rf = 0;
+
+    int counter = 1000000;
+    while (1) {
+        *hb = ++counter;
+        for (volatile int d = 0; d < 10000000; d++);
+    }
+}
+
 int run(void){
     volatile int *hb = (volatile int*)heartbeat;
     volatile int *rd = (volatile int*)((char*)heartbeat+4092);

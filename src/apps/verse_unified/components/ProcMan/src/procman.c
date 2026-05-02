@@ -138,6 +138,11 @@ static int rebuild_worker_tcb(void)
         return -1;
     }
 
+    printf("ProcMan: fresh metadata RIP=0x%lx RSP=0x%lx IPC=0x%lx\n",
+           (unsigned long)VERSE_WORKER_ENTRY_IP,
+           (unsigned long)VERSE_WORKER_STACK_TOP,
+           (unsigned long)VERSE_WORKER_IPC_BUFFER_ADDR);
+
     int err = seL4_Untyped_Retype(VERSE_WORKER_TCB_UNTYPED_CPTR,
                                   seL4_TCBObject,
                                   seL4_TCBBits,
@@ -186,6 +191,17 @@ static int rebuild_worker_tcb(void)
         printf("ProcMan: seL4_TCB_Configure failed (%d)\n", err);
         return -1;
     }
+#endif
+
+#ifndef CONFIG_KERNEL_MCS
+    err = seL4_TCB_SetPriority(VERSE_FRESH_WORKER_TCB_CPTR,
+                               seL4_CapInitThreadTCB,
+                               VERSE_WORKER_PRIORITY);
+    if (err != seL4_NoError) {
+        printf("ProcMan: seL4_TCB_SetPriority failed (%d)\n", err);
+        return -1;
+    }
+    printf("ProcMan: fresh TestWorker priority set to %d\n", VERSE_WORKER_PRIORITY);
 #endif
 
     seL4_UserContext regs = {0};

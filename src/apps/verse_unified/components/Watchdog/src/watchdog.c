@@ -26,7 +26,9 @@ int run(void){
         }
         printf("WDOG: waiting for recovery heartbeat...\n");
         while (*hb == last) { for (volatile int d=0; d<1000000; d++); }
+        int recovered = *hb;
         *kflag = 0;
+        printf("WDOG: recovery heartbeat received (%d)\n", recovered);
         printf("WDOG: heartbeat resumed, re-armed and monitoring\n");
     }
     return 0;
