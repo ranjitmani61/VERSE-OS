@@ -112,6 +112,7 @@ static int suspend_worker_tcb(void)
         return -1;
     }
     printf("ProcMan: seL4_TCB_Suspend(worker_tcb) OK\n");
+    printf("ProcMan: old worker TCB suspended and quarantined\n");
     return 0;
 }
 

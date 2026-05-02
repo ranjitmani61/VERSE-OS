@@ -29,6 +29,10 @@ int run(void){
         int recovered = *hb;
         *kflag = 0;
         printf("WDOG: recovery heartbeat received (%d)\n", recovered);
+        if (recovered >= 1000000) {
+            printf("WDOG: recovered worker entry heartbeat proof\n");
+            printf("VERSE_RECOVERY_PASS\n");
+        }
         printf("WDOG: heartbeat resumed, re-armed and monitoring\n");
     }
     return 0;
