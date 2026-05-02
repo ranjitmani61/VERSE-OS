@@ -5,16 +5,19 @@ import re
 import sys
 from pathlib import Path
 
-REQUIRED_PROC_SLOTS = {
-    "0x100": "TestWorker TCB cap for ProcMan suspend authority",
-    "0x101": "ProcMan receive cap for TestWorker fault endpoint",
-    "0x102": "ProcMan CNode destination root for Retype",
-    "0x103": "Untyped memory for fresh TCB",
-    "0x104": "Empty destination slot for fresh TCB",
-    "0x105": "TestWorker CSpace root",
-    "0x106": "TestWorker VSpace root",
-    "0x107": "TestWorker IPC buffer frame",
-    "0x108": "TestWorker fault endpoint cap for TCB_Configure",
+REQUIRED_PRESENT_PROC_SLOTS = {
+    "0x100": ("TestWorker TCB cap for ProcMan suspend authority", "testworker_testworker_0_control_tcb"),
+    "0x101": ("ProcMan receive cap for TestWorker fault endpoint", "testworker_fault_ep"),
+    "0x102": ("ProcMan CNode destination root for Retype", "procman_cnode"),
+    "0x103": ("Untyped memory for fresh TCB", None),
+    "0x105": ("TestWorker CSpace root", "testworker_cnode"),
+    "0x106": ("TestWorker VSpace root", "testworker_group_bin_pd"),
+    "0x107": ("TestWorker IPC buffer frame", "testworker_frame__camkes_ipc_buffer_testworker_0_control"),
+    "0x108": ("TestWorker fault endpoint cap for TCB_Configure", "testworker_fault_ep"),
+}
+
+REQUIRED_EMPTY_PROC_SLOTS = {
+    "0x104": "Empty destination slot for fresh TCB created by seL4_Untyped_Retype",
 }
 
 def find_cnode_blocks(text: str) -> list[tuple[str, str]]:
@@ -87,9 +90,24 @@ def main() -> int:
 
     combined = "\n\n".join(body for _, body in proc_blocks)
     print()
-    print("== Required handoff slots inside ProcMan-like CNode blocks ==")
-    for slot, meaning in REQUIRED_PROC_SLOTS.items():
-        ok = slot in combined
+    print("== Required present handoff slots inside ProcMan-like CNode blocks ==")
+    for slot, (meaning, target) in REQUIRED_PRESENT_PROC_SLOTS.items():
+        slot_re = re.compile(rf"(?m)^\s*{re.escape(slot)}\s*:\s*([^\n]+)")
+        m = slot_re.search(combined)
+        ok = bool(m)
+        if ok and target is not None:
+            ok = target in m.group(1)
+        target_note = f" -> {target}" if target else ""
+        actual = f" [{m.group(1).strip()}]" if m else ""
+        print(f"{'PASS' if ok else 'FAIL'} {slot}: {meaning}{target_note}{actual}")
+        if not ok:
+            failures += 1
+
+    print()
+    print("== Required empty handoff slots inside ProcMan-like CNode blocks ==")
+    for slot, meaning in REQUIRED_EMPTY_PROC_SLOTS.items():
+        slot_re = re.compile(rf"(?m)^\s*{re.escape(slot)}\s*:")
+        ok = not bool(slot_re.search(combined))
         print(f"{'PASS' if ok else 'FAIL'} {slot}: {meaning}")
         if not ok:
             failures += 1
