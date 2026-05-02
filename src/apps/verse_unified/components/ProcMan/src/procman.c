@@ -38,7 +38,7 @@
 #define VERSE_WORKER_IPC_BUFFER_CPTR ((seL4_CPtr)0x107)
 #endif
 #ifndef VERSE_WORKER_CONFIGURE_FAULT_EP_CPTR
-#define VERSE_WORKER_CONFIGURE_FAULT_EP_CPTR ((seL4_CPtr)0x108)
+#define VERSE_WORKER_CONFIGURE_FAULT_EP_CPTR ((seL4_CPtr)0x2)
 #endif
 #ifndef VERSE_CNODE_DEST_INDEX
 #define VERSE_CNODE_DEST_INDEX 0
@@ -47,7 +47,7 @@
 #define VERSE_CNODE_DEST_DEPTH 0
 #endif
 #ifndef VERSE_WORKER_CSPACE_GUARD_BITS
-#define VERSE_WORKER_CSPACE_GUARD_BITS 52
+#define VERSE_WORKER_CSPACE_GUARD_BITS 61
 #endif
 #ifndef VERSE_WORKER_VSPACE_ROOT_DATA
 #define VERSE_WORKER_VSPACE_ROOT_DATA 0
@@ -73,6 +73,9 @@
 #endif
 #ifndef VERSE_WORKER_MAX_PRIORITY
 #define VERSE_WORKER_MAX_PRIORITY 254
+#endif
+#ifndef VERSE_WORKER_MCS_FAULT_EP_CPTR
+#define VERSE_WORKER_MCS_FAULT_EP_CPTR ((seL4_CPtr)0x108)
 #endif
 #endif
 #endif
@@ -187,12 +190,17 @@ static int rebuild_worker_tcb(int attempt)
                                   VERSE_WORKER_MAX_PRIORITY,
                                   VERSE_WORKER_PRIORITY,
                                   VERSE_WORKER_SCHED_CONTEXT_CPTR,
-                                  VERSE_WORKER_CONFIGURE_FAULT_EP_CPTR);
+                                  VERSE_WORKER_MCS_FAULT_EP_CPTR);
     if (err != seL4_NoError) {
         printf("ProcMan: seL4_TCB_SetSchedParams failed (%d)\n", err);
         return -1;
     }
 #else
+    /*
+     * Non-MCS seL4 interprets TCB_Configure's fault_ep as a CPtr in the
+     * configured thread's CSpace. TestWorker's generated fault endpoint is
+     * slot 0x2; ProcMan's handoff cap at 0x108 is not valid in that CSpace.
+     */
     err = seL4_TCB_Configure(fresh_tcb,
                              VERSE_WORKER_CONFIGURE_FAULT_EP_CPTR,
                              VERSE_WORKER_CSPACE_CPTR, cspace_data,
